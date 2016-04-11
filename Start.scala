@@ -1,5 +1,7 @@
 import scala.collection.mutable.PriorityQueue
+import scala.collection.mutable.Queue
 import scala.collection.mutable.ListBuffer
+import scala.io.Source._
 
 object Start{
 
@@ -10,17 +12,31 @@ object Start{
 
     class Cursor(){
 
+        object Settings{
+            var fairness:Boolean = true;
+        }
+
         var location = new Pair[Int, Int](0, 0);
 
-        var priority = List(Direction.mRight, Direction.mDown, Direction.mLeft, Direction.mUp);
+        var priority = Array(Direction.mRight, Direction.mDown, Direction.mLeft, Direction.mUp);
+
+        /*
+            Make d the last item in the priority list and move
+            everything else up one
+        */
+        def dropToEnd(d:Direction.Value){
+            for(q <- 0 until priority.length - 1){
+                if(priority(q) == d){
+                    priority(q) = priority(q+1)
+                    priority(q+1) = d
+                }
+            }
+        }
 
         def getMove(possible : List[Direction.Value]) : Direction.Value ={
-            println();
-            println(possible);
             for(d <- priority){
                 if(possible.contains(d)){
-                    println("picked: ");
-                    println(d);
+                    if(Settings.fairness) dropToEnd(d);
                     return d;
                 }
             }
@@ -53,9 +69,46 @@ object Start{
 
     class Grid(x:Int , y:Int){
 
-        var coords = Array.ofDim[Int](x,y);
+        var coords = Array.ofDim[Int](x, y);
         var xDim:Int = x;
         var yDim:Int = y;
+
+
+        def readGrid(filename: String) : Array[Array[Int]] = {
+          io.Source.fromFile(filename)
+            .getLines()
+            .map(_.toCharArray.map(Character.getNumericValue(_)))
+            .toArray
+        }
+        def doNothing(filename:String){
+/*            try{
+
+                val lines = fromFile(filename).getLines
+                xDim = Integer.parseInt(lines.next)
+                yDim = Integer.parseInt(lines.next)
+                var bufferCol : collection.mutable.ArrayBuffer[Array[Int]];
+                var bufferRow : collection.mutable.ArrayBuffer[Int];
+                var x: Int = 0;
+                var y: Int = 0;
+                for(line <- lines){
+                    x = 0
+                    for(char <- line){
+                        bufferRow += Character.getNumericValue(char)
+                        x+= 1;
+                    }
+                    bufferCol += bufferRow.toArray
+                    bufferRow.trimEnd(xDim)
+                    y+= 1;
+                }
+             }catch{
+                    case file: java.io.FileNotFoundException =>
+                        println(file);
+             }*/
+        }
+
+        object Settings{
+            var inertia:Boolean = true;
+        }
 
         var cursor = new Cursor();
         
@@ -69,9 +122,9 @@ object Start{
                     }
                 println;
             }*/
-            for (i <- 0 until xDim){
+            for (j <- 0 until xDim){
                 println();
-                for (j <- 0 until yDim){
+                for (i <- 0 until yDim){
                     print(mapArrow(coords(j)(i)))
                     print (" ");
                 }
@@ -110,7 +163,7 @@ object Start{
                 list += Direction.mUp;
             }
             list += Direction.mNoMove;
-            println(list.toList);
+            //println(list.toList);
             return list.toList;
         }
 
@@ -118,34 +171,36 @@ object Start{
         def mapNumber(dir : Direction.Value) : Int = {
             dir match{
                 case Direction.mUp =>
-                    return 1
-
-                case Direction.mLeft =>
                     return 2
 
+                case Direction.mLeft =>
+                    return 1
+
                 case Direction.mRight =>
-                    return 3
+                    return 4
 
                 case Direction.mDown =>
-                    return 4
+                    return 3
             }
             return 0;
         }
 
         def run(){
             placeCursor(0,0);
-            coords(2)(2) = 5;
             var list = checkPossible();
             var nextMove = cursor.getMove(list);
             while(nextMove != Direction.mNoMove){
-
+                Thread.sleep(100L);
+                printGrid();
                 coords(cursor.location._1)(cursor.location._2) = mapNumber(nextMove);
                 cursor.move(nextMove);
                 //coords(cursor.location._1)(cursor.location._2) = mapNumber(nextMove);
                 //cursor.move(nextMove);
 
                 list = checkPossible();
-                nextMove = cursor.getMove(list);
+                if(!Settings.inertia || !list.contains(nextMove)){
+                    nextMove = cursor.getMove(list);
+                }
             }
             printGrid();
         }
@@ -206,8 +261,10 @@ object Start{
     }
 
     def main(args: Array[String]){
-        var grid = new Grid(9, 9);
-        grid.run();
+        var g = new Grid(16, 16);
+        g.coords = g.readGrid("./board")
+        g.printGrid()
+        g.run()
     }
 
 }
