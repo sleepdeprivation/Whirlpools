@@ -3,7 +3,7 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.ListBuffer
 import scala.io.Source._
 
-object Start{
+object Whirlpool{
 
         object Direction extends Enumeration {
             type Direction = Value
